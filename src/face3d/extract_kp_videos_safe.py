@@ -71,7 +71,8 @@ class KeypointExtractor():
                         # face detection -> face alignment.
                         img = np.array(images)
                         bboxes = self.det_net.detect_faces(images, 0.97)
-                        
+
+                        # Attempt to access the first bounding box, assuming one exists
                         bboxes = bboxes[0]
                         img = img[int(bboxes[1]):int(bboxes[3]), int(bboxes[0]):int(bboxes[2]), :]
 
@@ -88,14 +89,27 @@ class KeypointExtractor():
                         time.sleep(1)
                     else:
                         print(e)
-                        break    
-                except TypeError:
-                    print('No face detected in this image')
+                    # Ensure keypoints is defined even if RuntimeError occurs before assignment
                     shape = [68, 2]
-                    keypoints = -1. * np.ones(shape)                    
+                    keypoints = -1. * np.ones(shape)
                     break
+                except IndexError:
+                    # Handle case where bboxes[0] fails (no face detected or malformed bboxes)
+                    print('No face detected in this image (IndexError accessing bboxes[0])')
+                    shape = [68, 2]
+                    keypoints = -1. * np.ones(shape)
+                    break
+
             if name is not None:
+                # Ensure keypoints is defined before saving
+                if 'keypoints' not in locals():
+                     shape = [68, 2]
+                     keypoints = -1. * np.ones(shape)
                 np.savetxt(os.path.splitext(name)[0]+'.txt', keypoints.reshape(-1))
+            # Ensure keypoints is defined before returning
+            if 'keypoints' not in locals():
+                 shape = [68, 2]
+                 keypoints = -1. * np.ones(shape)
             return keypoints
 
 def read_video(filename):
